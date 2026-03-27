@@ -4,6 +4,7 @@ import { useUserRole } from "@follow/store/user/hooks"
 import { cn } from "@follow/utils"
 import { Fragment, memo, useMemo } from "react"
 
+import { useAISettingKey } from "~/atoms/settings/ai"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu/dropdown-menu"
+import { isDirectByokEnabled } from "~/lib/ai-byok"
 import { useSettingModal } from "~/modules/settings/modal/use-setting-modal-hack"
 
 import { useAIModel } from "../../hooks/useAIModel"
@@ -21,7 +23,16 @@ interface AIModelIndicatorProps {
   onModelChange?: (model: string) => void
 }
 
-type ProviderType = "openai" | "google" | "auto" | "deepseek" | "anthropic" | "moonshotai"
+type ProviderType =
+  | "openai"
+  | "google"
+  | "auto"
+  | "deepseek"
+  | "anthropic"
+  | "moonshotai"
+  | "openrouter"
+  | "vercel-ai-gateway"
+  | "openai-compatible"
 
 const providerIcons: Record<ProviderType, string> = {
   auto: "i-mgc-folo-bot-original size-4 -ml-0.5",
@@ -30,6 +41,9 @@ const providerIcons: Record<ProviderType, string> = {
   anthropic: "i-simple-icons-claude",
   deepseek: "i-mgc-deepseek-original",
   moonshotai: "i-mgc-moonshotai-original",
+  openrouter: "i-mgc-openai-original",
+  "vercel-ai-gateway": "i-mgc-openai-original",
+  "openai-compatible": "i-mgc-openai-original",
 }
 
 const MODEL_PAID_LEVELS = ["basic", "plus", "pro"] as const
@@ -81,7 +95,9 @@ export const AIModelIndicator = memo(({ className, onModelChange }: AIModelIndic
   const { data, changeModel } = useAIModel()
   const { defaultModel, availableModels = [], currentModel, availableModelsMenu = [] } = data || {}
   const role = useUserRole()
+  const byok = useAISettingKey("byok")
   const settingModalPresent = useSettingModal()
+  const isDirectByok = isDirectByokEnabled(byok)
 
   const { provider, modelName } = useMemo(() => {
     return parseModelString(currentModel || defaultModel || "")
@@ -132,7 +148,8 @@ export const AIModelIndicator = memo(({ className, onModelChange }: AIModelIndic
             const itemIconClass = providerIcons[itemProvider] || providerIcons.auto
             const isSelected = value === (currentModel || defaultModel)
             const normalizedPaidLevel = isModelPaidLevel(paidLevel) ? paidLevel : undefined
-            const requiresUpgrade = !hasAccessToPaidLevel(role, normalizedPaidLevel)
+            const requiresUpgrade =
+              !isDirectByok && !hasAccessToPaidLevel(role, normalizedPaidLevel)
 
             const handleModelSelect = () => {
               if (requiresUpgrade) {

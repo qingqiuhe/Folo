@@ -2,6 +2,7 @@ import { Card, CardContent } from "@follow/components/ui/card/index.jsx"
 import { useTranslation } from "react-i18next"
 
 import { useModalStack } from "~/components/ui/modal/stacked/hooks"
+import { isLocalAIConfiguration } from "~/lib/ai-byok"
 import { useAIConfiguration } from "~/modules/ai-chat/hooks/useAIConfiguration"
 
 import { DetailedUsageModal, UsageProgressRing, UsageWarningBanner } from "./components"
@@ -16,6 +17,17 @@ export const UsageAnalysisSection = () => {
     return <div className="h-36 animate-pulse rounded-lg bg-fill-secondary" />
   }
   if (!config) return null
+
+  if (isLocalAIConfiguration(config)) {
+    return (
+      <Card>
+        <CardContent className="p-4 text-sm text-text-secondary">
+          <div className="font-medium text-text">{t("usage_analysis.byok_mode.title")}</div>
+          <div className="mt-1">{t("usage_analysis.byok_mode.description")}</div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const { usage, rateLimit } = config
   const usagePercentage = usage.total === 0 ? 0 : (usage.used / usage.total) * 100

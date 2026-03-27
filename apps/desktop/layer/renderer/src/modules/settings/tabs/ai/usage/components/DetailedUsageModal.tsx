@@ -7,6 +7,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
+import { isLocalAIConfiguration } from "~/lib/ai-byok"
 import { followApi } from "~/lib/api-client"
 import { useAIConfiguration } from "~/modules/ai-chat/hooks/useAIConfiguration"
 
@@ -44,6 +45,14 @@ export const DetailedUsageModal = () => {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-sm text-text-secondary">{t("usage_analysis.no_data")}</div>
+      </div>
+    )
+  }
+
+  if (isLocalAIConfiguration(config)) {
+    return (
+      <div className="flex h-96 items-center justify-center px-6 text-center">
+        <div className="text-sm text-text-secondary">{t("usage_analysis.byok_mode.description")}</div>
       </div>
     )
   }

@@ -229,10 +229,17 @@ export interface AISettings {
   byok: UserByokSettings
 }
 
-export type ByokProviderName = "openai" | "google" | "vercel-ai-gateway" | "openrouter"
+export type ByokProviderName =
+  | "openai"
+  | "google"
+  | "vercel-ai-gateway"
+  | "openrouter"
+  | "openai-compatible"
 
 export type UserByokProviderConfig = {
   provider: ByokProviderName
+  name?: string
+  model?: string
   baseURL?: string | null
   apiKey?: string | null
   headers?: Record<string, string>

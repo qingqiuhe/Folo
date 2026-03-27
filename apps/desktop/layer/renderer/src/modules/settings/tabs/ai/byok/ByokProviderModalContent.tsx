@@ -33,7 +33,10 @@ export const ByokProviderModalContent = ({
 
   // Filter out already configured providers, but keep the current one if editing
   const availableProviders = PROVIDER_OPTIONS.filter(
-    (option) => !configuredProviders.includes(option.value) || option.value === provider?.provider,
+    (option) =>
+      option.value === "openai-compatible" ||
+      !configuredProviders.includes(option.value) ||
+      option.value === provider?.provider,
   )
 
   // Get the first available provider or fallback to the current one
@@ -41,6 +44,8 @@ export const ByokProviderModalContent = ({
 
   const [formData, setFormData] = useState<UserByokProviderConfig>({
     provider: provider?.provider ?? defaultProvider,
+    name: provider?.name ?? "",
+    model: provider?.model ?? "",
     baseURL: provider?.baseURL ?? null,
     apiKey: provider?.apiKey ?? null,
     headers: provider?.headers ?? {},
@@ -48,11 +53,23 @@ export const ByokProviderModalContent = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.provider) {
+    const isCustomProvider = formData.provider === "openai-compatible"
+
+    if (
+      !formData.provider ||
+      (isCustomProvider && !formData.name?.trim()) ||
+      (isCustomProvider && !formData.model?.trim())
+    ) {
       return
     }
-    onSave(formData)
+    onSave({
+      ...formData,
+      name: formData.name?.trim() || undefined,
+      model: formData.model?.trim() || undefined,
+    })
   }
+
+  const isCustomProvider = formData.provider === "openai-compatible"
 
   return (
     <form onSubmit={handleSubmit} className="min-w-[40ch] space-y-4">
@@ -76,6 +93,41 @@ export const ByokProviderModalContent = ({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {isCustomProvider && (
+        <div className="space-y-2">
+          <Label htmlFor="name">{t("byok.providers.form.name")}</Label>
+          <Input
+            id="name"
+            placeholder={t("byok.providers.form.name_placeholder")}
+            value={formData.name ?? ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                name: e.target.value,
+              })
+            }
+            required
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="model">{t("byok.providers.form.model")}</Label>
+        <Input
+          id="model"
+          placeholder={t("byok.providers.form.model_placeholder")}
+          value={formData.model ?? ""}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              model: e.target.value,
+            })
+          }
+          required={isCustomProvider}
+        />
+        <p className="text-xs text-text-secondary">{t("byok.providers.form.model_help")}</p>
       </div>
 
       <div className="space-y-2">

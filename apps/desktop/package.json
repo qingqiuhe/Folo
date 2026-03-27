@@ -5,9 +5,9 @@
   "private": true,
   "description": "Follow everything in one place",
   "author": "Folo Team",
-  "homepage": "https://github.com/RSSNext",
+  "homepage": "https://github.com/qingqiuhe/Folo",
   "repository": {
-    "url": "https://github.com/RSSNext/Folo",
+    "url": "https://github.com/qingqiuhe/Folo",
     "type": "git"
   },
   "main": "./dist/main/index.js",

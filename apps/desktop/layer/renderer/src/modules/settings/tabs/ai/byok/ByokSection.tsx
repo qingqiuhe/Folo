@@ -10,7 +10,6 @@ import { useDialog, useModalStack } from "~/components/ui/modal/stacked/hooks"
 
 import { ByokProviderItem } from "./ByokProviderItem"
 import { ByokProviderModalContent } from "./ByokProviderModalContent"
-import { PROVIDER_OPTIONS } from "./constants"
 
 export const ByokSection = () => {
   const { t } = useTranslation("ai")
@@ -117,12 +116,10 @@ export const ByokSection = () => {
         <>
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium text-text">{t("byok.providers.title")}</Label>
-            {byok.providers.length < PROVIDER_OPTIONS.length && (
-              <Button variant="outline" size="sm" onClick={handleAddProvider}>
-                <i className="i-mgc-add-cute-re mr-2 size-4" />
-                {t("byok.providers.add")}
-              </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={handleAddProvider}>
+              <i className="i-mgc-add-cute-re mr-2 size-4" />
+              {t("byok.providers.add")}
+            </Button>
           </div>
 
           {byok.providers.length === 0 && (
@@ -138,14 +135,26 @@ export const ByokSection = () => {
           )}
 
           <div className="!mt-2 space-y-4">
-            {byok.providers.map((provider, index) => (
-              <ByokProviderItem
-                key={index}
-                provider={provider}
-                onDelete={() => handleDeleteProvider(index)}
-                onEdit={() => handleEditProvider(index, provider)}
-              />
-            ))}
+            {byok.providers.map((provider, index) => {
+              const providerKey = [
+                provider.provider,
+                provider.name,
+                provider.model,
+                provider.baseURL,
+                provider.apiKey,
+              ]
+                .filter(Boolean)
+                .join("|")
+
+              return (
+                <ByokProviderItem
+                  key={providerKey}
+                  provider={provider}
+                  onDelete={() => handleDeleteProvider(index)}
+                  onEdit={() => handleEditProvider(index, provider)}
+                />
+              )
+            })}
           </div>
         </>
       )}

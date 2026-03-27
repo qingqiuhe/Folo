@@ -4,9 +4,9 @@
   "private": true,
   "author": "Folo Team",
   "license": "GPL-3.0-only",
-  "homepage": "https://github.com/RSSNext",
+  "homepage": "https://github.com/qingqiuhe/Folo",
   "repository": {
-    "url": "https://github.com/RSSNext/follow",
+    "url": "https://github.com/qingqiuhe/Folo",
     "type": "git"
   },
   "exports": {

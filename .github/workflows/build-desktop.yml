@@ -20,6 +20,13 @@ on:
       build_version:
         type: string
         description: "Build Version, only available when mas is true"
+      target_platform:
+        type: choice
+        description: "Build target platform"
+        default: all
+        options:
+          - all
+          - macos
 
 # https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs
 concurrency:
@@ -44,9 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-        exclude:
-          - os: ${{ github.event.inputs.store == 'true' && 'ubuntu-latest' }}
+        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && github.event.inputs.store == 'true' && '["macos-latest","windows-latest"]' || github.event_name == 'workflow_dispatch' && github.event.inputs.target_platform == 'macos' && '["macos-latest"]' || '["macos-latest","ubuntu-latest","windows-latest"]') }}
 
     permissions:
       id-token: write

@@ -6,9 +6,11 @@ import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 import { useIsPaymentEnabled } from "~/atoms/server-configs"
+import { useAISettingKey } from "~/atoms/settings/ai"
 import { CopyButton } from "~/components/ui/button/CopyButton"
 import { Markdown } from "~/components/ui/markdown/Markdown"
 import { useFeature } from "~/hooks/biz/useFeature"
+import { isDirectByokEnabled } from "~/lib/ai-byok"
 import { useSettingModal } from "~/modules/settings/modal/useSettingModal"
 
 interface AISummaryCardBaseProps {
@@ -109,10 +111,15 @@ export const AISummaryCardBase: React.FC<AISummaryCardBaseProps> = ({
 }) => {
   const { t } = useTranslation("app")
   const aiEnabled = useFeature("ai")
+  const isPaymentEnabled = useIsPaymentEnabled()
+  const byok = useAISettingKey("byok")
+  const isDirectByok = isDirectByokEnabled(byok)
 
   const hasContent = !isLoading && content
   const shouldSuggestUpgrade =
-    useIsPaymentEnabled() && error instanceof FollowAPIError ? error.status === 402 : undefined
+    !isDirectByok && isPaymentEnabled && error instanceof FollowAPIError
+      ? error.status === 402
+      : undefined
 
   return (
     <div

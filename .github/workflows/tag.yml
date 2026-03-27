@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
       - mobile-main
 
 permissions:
@@ -74,20 +75,20 @@ jobs:
 
     steps:
       - name: Checkout repository
-        if: needs.create_tag.outputs.platform == 'desktop' && needs.create_tag.outputs.ref_name == 'main'
+        if: needs.create_tag.outputs.platform == 'desktop' && (needs.create_tag.outputs.ref_name == 'main' || needs.create_tag.outputs.ref_name == 'dev')
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Configure Git
-        if: needs.create_tag.outputs.platform == 'desktop' && needs.create_tag.outputs.ref_name == 'main'
+        if: needs.create_tag.outputs.platform == 'desktop' && (needs.create_tag.outputs.ref_name == 'main' || needs.create_tag.outputs.ref_name == 'dev')
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Resolve desktop build version
         id: desktop_build_version
-        if: needs.create_tag.outputs.platform == 'desktop' && needs.create_tag.outputs.ref_name == 'main'
+        if: needs.create_tag.outputs.platform == 'desktop' && (needs.create_tag.outputs.ref_name == 'main' || needs.create_tag.outputs.ref_name == 'dev')
         run: |
           git fetch --tags --force
           latest_tag="$(git tag -l 'desktop-build/v*' --sort=-v:refname | head -n 1)"
@@ -111,7 +112,7 @@ jobs:
           echo "Desktop build version: ${next_build}"
 
       - name: Trigger Desktop Tag Version Build
-        if: needs.create_tag.outputs.platform == 'desktop' && needs.create_tag.outputs.ref_name == 'main'
+        if: needs.create_tag.outputs.platform == 'desktop' && (needs.create_tag.outputs.ref_name == 'main' || needs.create_tag.outputs.ref_name == 'dev')
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -120,10 +121,11 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'build-desktop.yml',
-              ref: 'main',
+              ref: '${{ needs.create_tag.outputs.ref_name }}',
               inputs: {
                 tag_version: 'true',
-                store: 'false'
+                store: 'false',
+                target_platform: 'macos'
               }
             });
             console.log('Desktop Tag Version build triggered successfully');

@@ -21,6 +21,10 @@ const platform = process.argv.find((arg) => arg.startsWith("--platform"))?.split
 const mode = process.argv.find((arg) => arg.startsWith("--mode"))?.split("=")[1]
 const isMicrosoftStore =
   process.argv.find((arg) => arg.startsWith("--ms"))?.split("=")[1] === "true"
+const defaultRepository = "qingqiuhe/Folo"
+const [githubOwner, githubRepo] = (
+  process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPOSITORY_SLUG || defaultRepository
+).split("/")
 
 const isStaging = mode === "staging"
 
@@ -246,8 +250,8 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "RSSNext",
-          name: "follow",
+          owner: githubOwner || "qingqiuhe",
+          name: githubRepo || "Folo",
         },
         draft: true,
       },

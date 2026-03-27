@@ -1,19 +1,13 @@
 import { env } from "@follow/shared/env.desktop"
-import type { HttpChatTransportInitOptions, UIMessageChunk } from "ai"
-import { HttpChatTransport, parseJsonEventStream, uiMessageChunkSchema } from "ai"
+import type { UIMessageChunk } from "ai"
+
+import { getAISettings } from "~/atoms/settings/ai"
+import { getActiveByokProvider, getStoredDirectByokEnabled } from "~/lib/ai-byok"
 
 import { getAIModelState } from "../atoms/session"
-import { AIPersistService } from "../services"
-import type { BizUIMessage } from "./types"
-
-type TitleHandlerPersistOption = boolean | ((title: string) => void | Promise<void>)
-
-export interface TitleHandlerOptions {
-  chatId?: string
-  shouldHandle?: () => boolean
-  onTitleChange?: (title: string) => void
-  persist?: TitleHandlerPersistOption
-}
+import type { TitleHandlerOptions, TitleHandlerPersistOption } from "./base-transport"
+import { ExtendChatTransport } from "./base-transport"
+import { DirectLLMTransport } from "./direct-transport"
 
 export interface CreateChatTransportOptions {
   onValue?: (value: UIMessageChunk) => void
@@ -45,6 +39,19 @@ export function createChatTitleHandler(
  * This is used by the AbstractChat instance to communicate with AI providers
  */
 export function createChatTransport({ onValue, titleHandler }: CreateChatTransportOptions = {}) {
+  if (getStoredDirectByokEnabled()) {
+    const { byok } = getAISettings()
+    const { selectedModel } = getAIModelState()
+    const activeProvider = getActiveByokProvider(byok, selectedModel)
+
+    if (activeProvider) {
+      return new DirectLLMTransport(activeProvider, {
+        onValue,
+        titleHandler,
+      })
+    }
+  }
+
   return new ExtendChatTransport({
     onValue,
     titleHandler,
@@ -59,111 +66,4 @@ export function createChatTransport({ onValue, titleHandler }: CreateChatTranspo
       return selectedModel ? { model: selectedModel } : {}
     },
   })
-}
-
-type UIMessageChunkParseResult =
-  ReturnType<typeof parseJsonEventStream<UIMessageChunk>> extends ReadableStream<infer T>
-    ? T
-    : never
-
-const coerceFinishChunk = (chunk: UIMessageChunkParseResult): UIMessageChunk | null => {
-  const { rawValue } = chunk
-  if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
-    return null
-  }
-
-  if ((rawValue as { type?: unknown }).type !== "finish") {
-    return null
-  }
-
-  const { finishReason, messageMetadata } = rawValue as {
-    finishReason?: unknown
-    messageMetadata?: unknown
-  }
-
-  return {
-    type: "finish",
-    finishReason: typeof finishReason === "string" ? finishReason : undefined,
-    messageMetadata,
-  } as UIMessageChunk
-}
-
-class ExtendChatTransport extends HttpChatTransport<BizUIMessage> {
-  constructor(
-    private options: HttpChatTransportInitOptions<BizUIMessage> & {
-      onValue?: (value: UIMessageChunk) => void
-      titleHandler?: TitleHandlerOptions
-    },
-  ) {
-    super(options)
-  }
-
-  protected processResponseStream(
-    stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageChunk> {
-    const { onValue } = this.options || {}
-    const handleGeneratedTitle = this.handleGeneratedTitle.bind(this)
-    return parseJsonEventStream({
-      stream,
-      schema: uiMessageChunkSchema,
-    }).pipeThrough(
-      new TransformStream<UIMessageChunkParseResult, UIMessageChunk>({
-        async transform(chunk, controller) {
-          const parsedChunk = chunk.success ? chunk.value : coerceFinishChunk(chunk)
-          if (!parsedChunk) {
-            throw chunk.error
-          }
-
-          await handleGeneratedTitle(parsedChunk)
-          onValue?.(parsedChunk)
-          controller.enqueue(parsedChunk)
-        },
-      }),
-    )
-  }
-
-  private async handleGeneratedTitle(chunk: UIMessageChunk) {
-    const { titleHandler } = this.options
-    if (!titleHandler) {
-      return
-    }
-
-    if (chunk.type !== "data-generated-title" || typeof chunk.data !== "string") {
-      return
-    }
-
-    const shouldHandle = titleHandler.shouldHandle?.() ?? true
-    if (!shouldHandle) {
-      return
-    }
-
-    titleHandler.onTitleChange?.(chunk.data)
-
-    const persistOption = titleHandler.persist
-    const shouldPersist = persistOption === undefined ? true : persistOption
-
-    if (!shouldPersist) {
-      return
-    }
-
-    try {
-      if (typeof persistOption === "function") {
-        await persistOption(chunk.data)
-        return
-      }
-
-      if (titleHandler.chatId) {
-        await AIPersistService.updateSessionTitle(titleHandler.chatId, chunk.data)
-      }
-    } catch (error) {
-      console.error("Failed to persist generated title:", error)
-    }
-  }
-
-  override reconnectToStream(
-    options: Parameters<HttpChatTransport<BizUIMessage>["reconnectToStream"]>[0],
-  ) {
-    options.chatId = encodeURIComponent(options.chatId)
-    return super.reconnectToStream(options)
-  }
 }

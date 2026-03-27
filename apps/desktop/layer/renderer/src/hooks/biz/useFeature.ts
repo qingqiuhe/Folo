@@ -1,5 +1,6 @@
 import { getDebugFeatureValue, useDebugFeatureValue } from "~/atoms/debug-feature"
 import { getServerConfigs, useServerConfigs } from "~/atoms/server-configs"
+import { getStoredDirectByokEnabled, useStoredDirectByokEnabled } from "~/lib/ai-byok"
 import { featureConfigMap } from "~/lib/features"
 
 // Define debug feature value structure
@@ -22,7 +23,12 @@ const checkFeatureEnabled = (
   feature: FeatureKey,
   debugFeatureValue: DebugFeatureValue,
   serverConfigs: ReturnType<typeof getServerConfigs>,
+  byokEnabled = false,
 ): boolean => {
+  if (feature === "ai" && byokEnabled) {
+    return true
+  }
+
   const override = !!debugFeatureValue.__override
 
   if (override) {
@@ -41,8 +47,9 @@ const checkFeatureEnabled = (
 export const useFeature = (feature: FeatureKey): boolean => {
   const debugFeatureValue = useDebugFeatureValue() as DebugFeatureValue
   const serverConfigs = useServerConfigs()
+  const byokEnabled = useStoredDirectByokEnabled()
 
-  return checkFeatureEnabled(feature, debugFeatureValue, serverConfigs)
+  return checkFeatureEnabled(feature, debugFeatureValue, serverConfigs, byokEnabled)
 }
 
 /**
@@ -53,6 +60,7 @@ export const useFeature = (feature: FeatureKey): boolean => {
 export const getFeature = (feature: FeatureKey): boolean => {
   const debugFeatureValue = getDebugFeatureValue() as DebugFeatureValue
   const serverConfigs = getServerConfigs()
+  const byokEnabled = getStoredDirectByokEnabled()
 
-  return checkFeatureEnabled(feature, debugFeatureValue, serverConfigs)
+  return checkFeatureEnabled(feature, debugFeatureValue, serverConfigs, byokEnabled)
 }

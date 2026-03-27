@@ -10,7 +10,6 @@ import { usePrefetchSummary } from "@follow/store/summary/hooks"
 import { useUserRole } from "@follow/store/user/hooks"
 import { tracker } from "@follow/tracker"
 import { detectIsEditableElement, nextFrame } from "@follow/utils"
-import type { ConfigResponse } from "@follow-app/client-sdk"
 import type { EditorState } from "lexical"
 import { createEditor } from "lexical"
 import { nanoid } from "nanoid"
@@ -24,6 +23,7 @@ import { ErrorBoundary } from "~/components/common/ErrorBoundary"
 import { ROUTE_FEED_IN_FOLDER } from "~/constants"
 import { getRouteParams } from "~/hooks/biz/useRouteParams"
 import { useRequireLogin } from "~/hooks/common/useRequireLogin"
+import { isDirectByokEnabled } from "~/lib/ai-byok"
 import { useAutoScroll } from "~/modules/ai-chat/hooks/useAutoScroll"
 import { useLoadMessages } from "~/modules/ai-chat/hooks/useLoadMessages"
 import { useMainEntryId } from "~/modules/ai-chat/hooks/useMainEntryId"
@@ -257,7 +257,9 @@ const ChatInterfaceContent = ({ centerInputOnEmpty, visualOffsetY }: ChatInterfa
   const { handleScroll } = useAttachScrollBeyond()
 
   const { data: configuration } = useAIConfiguration()
-  const shouldHideResetDetails = userRole ? isFreeRole(userRole) : false
+  const byok = useAISettingKey("byok")
+  const isDirectByok = isDirectByokEnabled(byok)
+  const shouldHideResetDetails = isDirectByok ? false : userRole ? isFreeRole(userRole) : false
 
   const { isRateLimited, rateLimitMessage } = useRateLimitInfo(
     error,
@@ -393,7 +395,7 @@ const useChatDraft = (currentChatId?: string | null) => {
 
 const useRateLimitInfo = (
   error: Error | string | undefined,
-  configuration: ConfigResponse | undefined,
+  configuration: Parameters<typeof computeRateLimitMessage>[1],
   shouldHideResetDetails: boolean,
 ) => {
   const isRateLimited = useMemo(
